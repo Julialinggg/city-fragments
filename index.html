@@ -35,7 +35,6 @@
     .action-btn:hover { opacity: 0.85; }
     .action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
     ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #2d3748; border-radius: 2px; }
   </style>
 </head>
@@ -145,29 +144,28 @@
 </div>
 
 <script>
-// ✅ 第一步：替换为你的 DeepSeek API Key
-// 获取地址：https://platform.deepseek.com → API Keys → Create
-
-
-const fragments = [
-  { id:1, x:150, y:38,  name:"鼓楼",      type:"历史地标", challenge:"找到鼓楼飞檐的最美角度，拍下那四角翘起的弧线",      collected:false, story:null },
-  { id:2, x:40,  y:108, name:"什刹海",    type:"湖畔风情", challenge:"在荷花市场附近，捕捉水面倒映的灰瓦与红墙",          collected:false, story:null },
-  { id:3, x:70,  y:200, name:"南锣鼓巷",  type:"胡同文化", challenge:"找一扇挂着旧门牌号的四合院木门并拍下来",             collected:false, story:null },
-  { id:4, x:295, y:105, name:"雍和宫",    type:"藏传佛教", challenge:"在香烟缭绕中拍下金顶与蓝天的强烈对比",              collected:false, story:null },
-  { id:5, x:37,  y:272, name:"北海公园",  type:"皇家园林", challenge:"在五龙亭附近找到白塔倒影最完整的拍摄点",             collected:false, story:null },
-  { id:6, x:189, y:415, name:"故宫角楼",  type:"皇城遗迹", challenge:"从护城河东南角，拍出三重屋檐叠层的角楼剪影",         collected:false, story:null },
-  { id:7, x:260, y:192, name:"五道营胡同", type:"文艺街区", challenge:"找到最有年代感的一块手写木招牌留影",                 collected:false, story:null }
-];
-
+// ✅ 通过后端 /api/story 调用，API Key 安全隐藏在 Vercel 环境变量中
 async function callDeepSeek(prompt) {
   const res = await fetch("/api/story", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ prompt })
   });
+  if (!res.ok) throw new Error("HTTP " + res.status);
   const data = await res.json();
-  return data.text || "生成失败，请重试。";
+  if (data.error) throw new Error(data.error);
+  return data.text;
 }
+
+const fragments = [
+  { id:1, x:150, y:38,  name:"鼓楼",       type:"历史地标", challenge:"找到鼓楼飞檐的最美角度，拍下那四角翘起的弧线",      collected:false, story:null },
+  { id:2, x:40,  y:108, name:"什刹海",     type:"湖畔风情", challenge:"在荷花市场附近，捕捉水面倒映的灰瓦与红墙",          collected:false, story:null },
+  { id:3, x:70,  y:200, name:"南锣鼓巷",   type:"胡同文化", challenge:"找一扇挂着旧门牌号的四合院木门并拍下来",             collected:false, story:null },
+  { id:4, x:295, y:105, name:"雍和宫",     type:"藏传佛教", challenge:"在香烟缭绕中拍下金顶与蓝天的强烈对比",              collected:false, story:null },
+  { id:5, x:37,  y:272, name:"北海公园",   type:"皇家园林", challenge:"在五龙亭附近找到白塔倒影最完整的拍摄点",             collected:false, story:null },
+  { id:6, x:189, y:415, name:"故宫角楼",   type:"皇城遗迹", challenge:"从护城河东南角，拍出三重屋檐叠层的角楼剪影",         collected:false, story:null },
+  { id:7, x:260, y:192, name:"五道营胡同", type:"文艺街区", challenge:"找到最有年代感的一块手写木招牌留影",                  collected:false, story:null }
+];
 
 function renderFragments() {
   const layer = document.getElementById('fragments-layer');
@@ -244,7 +242,8 @@ async function generateStory(id) {
     f.story = await callDeepSeek(`你是北京城市文化专家，用80字以内、充满画面感的语言介绍「${f.name}」，包含一个冷知识或历史趣闻。语气像和朋友聊天，直接讲故事，不要标题和列表。`);
     showFragment(id);
   } catch(e) {
-    document.getElementById('story-area').innerHTML = '<div style="color:#ef4444;font-size:12px;">网络异常，请重试</div>';
+    document.getElementById('story-area').innerHTML = `<div style="color:#ef4444;font-size:12px;">生成失败：${e.message}</div>`;
+    if (btn) btn.disabled = false;
   }
 }
 
@@ -294,7 +293,7 @@ async function generatePostcard() {
         <div style="margin-top:14px;border-top:0.5px solid #2d1a06;padding-top:10px;color:#4b5563;font-size:9px;">探索足迹：${names}</div>
       </div>`;
   } catch(e) {
-    result.innerHTML = '<div style="color:#ef4444;font-size:12px;">生成失败，请重试</div>';
+    result.innerHTML = `<div style="color:#ef4444;font-size:12px;">生成失败：${e.message}</div>`;
   }
 }
 
